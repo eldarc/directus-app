@@ -8,13 +8,23 @@
       <div v-if="items.length" class="table">
         <div class="header">
           <div class="row">
-            <div v-for="field in visibleFields" :key="field.field">
+            <button
+              v-for="field in visibleFields"
+              :key="field.field"
+              type="button"
+              @click="changeSort(field.field)"
+            >
               {{ $helpers.formatTitle(field.field) }}
-            </div>
+              <v-icon
+                v-if="sort.field === field.field"
+                :name="sort.asc ? 'arrow_downward' : 'arrow_upward'"
+                size="16"
+              />
+            </button>
           </div>
         </div>
         <div class="body">
-          <div v-for="item in items" :key="item[relatedPrimaryKeyField]" class="row">
+          <div v-for="item in itemsSorted" :key="item[relatedPrimaryKeyField]" class="row">
             <v-ext-display
               v-for="field in visibleFields"
               :key="field.field"
@@ -91,20 +101,35 @@ export default {
     // collection
     relatedPrimaryKeyField() {
       return _.find(this.relation.junction.collection_one.fields, { primary_key: true }).field;
+    },
+
+    // The items in this.items, but sorted by the values in this.sort
+    itemsSorted() {
+      return _.orderBy(this.items, item => item[this.sort.field], this.sort.asc ? "asc" : "desc");
     }
   },
   created() {
-    this.initValue();
+    // Flatten the array of junction table rows into the items in the related
+    // collection. This means we keep a different local state vs the changes
+    // we stage.
+    if (this.value && this.value.length > 0) {
+      this.items = this.value.map(junctionRow => {
+        return junctionRow[this.relation.junction.field_many.field];
+      });
+    }
   },
   methods: {
-    // Flatten the array of junction table rows into the items in the related
-    // collection
-    initValue() {
-      if (this.value) {
-        this.items = this.value.map(junctionRow => {
-          return junctionRow[this.relation.junction.field_many.field];
-        });
+    // Change the sort position to the provided field. If the same field is
+    // changed, flip the sort order
+    changeSort(fieldName) {
+      if (this.sort.field === fieldName) {
+        this.sort.asc = !this.sort.asc;
+        return;
       }
+
+      this.sort.asc = true;
+      this.sort.field = fieldName;
+      return;
     }
   }
 };
