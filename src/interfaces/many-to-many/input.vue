@@ -102,7 +102,11 @@ export default {
       items: [],
       loading: false,
       error: null,
-      stagedSelection: null
+      stagedSelection: null,
+
+      initialValue: this.value,
+
+      stagedValue: []
     };
   },
   computed: {
@@ -176,10 +180,30 @@ export default {
       return;
     },
 
-    addNewItem() {},
+    addNewItem() {
+      const junctionFieldName = this.relation.junction.field_many.field;
+      const value = _.clone(this.defaultsWithEdits);
 
+      const newJunctionRow = {
+        [junctionFieldName]: this.edits
+      };
+
+      this.emitValue([...this.stagedValue, newJunctionRow]);
+
+      this.items = [...this.items, value];
+
+      this.edits = {};
+      this.addNew = false;
+    },
+
+    // Save the made edits in the add new item modal
     stageValue({ field, value }) {
       this.$set(this.edits, field, value);
+    },
+
+    emitValue(newValue) {
+      this.stagedValue = newValue;
+      this.$emit("input", newValue);
     }
   }
 };
