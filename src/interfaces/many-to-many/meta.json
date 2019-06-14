@@ -11,27 +11,6 @@
       "interface": "text-input",
       "placeholder": "name,description"
     },
-    "preferences": {
-      "name": "$t:preferences",
-      "comment": "$t:preferences_comment",
-      "interface": "json",
-      "options": {
-        "language": "application/json",
-        "template": {
-          "viewType": "tabular",
-          "viewQuery": {
-            "fields": ["id", "name"]
-          },
-          "filters": [
-            {
-              "field": "name",
-              "operator": "contains",
-              "value": "hi"
-            }
-          ]
-        }
-      }
-    },
     "template": {
       "name": "$t:template",
       "comment": "$t:template_comment",
