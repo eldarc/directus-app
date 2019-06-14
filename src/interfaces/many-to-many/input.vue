@@ -39,7 +39,43 @@
           </div>
         </div>
       </div>
+
+      <div class="buttons">
+        <v-button
+          v-if="options.allow_create"
+          type="button"
+          :disabled="readonly"
+          icon="add"
+          @click="addNew = true"
+        >
+          {{ $t("add_new") }}
+        </v-button>
+      </div>
     </template>
+
+    <portal v-if="addNew" to="modal">
+      <v-modal
+        :title="$t('creating_item')"
+        :buttons="{
+          save: {
+            text: $t('save'),
+            color: 'accent'
+          }
+        }"
+        @close="addNew = false"
+        @save="addNewItem"
+      >
+        <div class="edit-modal-body">
+          <v-form
+            new-item
+            :fields="relation.junction.collection_one.fields"
+            :collection="relation.junction.collection_one.collection"
+            :values="defaultsWithEdits"
+            @stage-value="stageValue"
+          />
+        </div>
+      </v-modal>
+    </portal>
   </div>
 </template>
 
@@ -106,6 +142,14 @@ export default {
     // The items in this.items, but sorted by the values in this.sort
     itemsSorted() {
       return _.orderBy(this.items, item => item[this.sort.field], this.sort.asc ? "asc" : "desc");
+    },
+
+    defaultsWithEdits() {
+      const relatedCollectionFields = this.relation.junction.collection_one.fields;
+
+      const defaults = _.mapValues(relatedCollectionFields, field => field.default_value);
+
+      return _.merge({}, defaults, this.edits);
     }
   },
   created() {
@@ -130,6 +174,12 @@ export default {
       this.sort.asc = true;
       this.sort.field = fieldName;
       return;
+    },
+
+    addNewItem() {},
+
+    stageValue({ field, value }) {
+      this.$set(this.edits, field, value);
     }
   }
 };
@@ -215,6 +265,28 @@ export default {
         }
       }
     }
+  }
+}
+
+.buttons {
+  margin-top: 24px;
+}
+
+.buttons > * {
+  display: inline-block;
+}
+
+.buttons > *:first-child {
+  margin-right: 24px;
+}
+
+.edit-modal-body {
+  padding: 30px 30px 60px 30px;
+  background-color: var(--body-background);
+  .form {
+    grid-template-columns:
+      [start] minmax(0, var(--column-width)) [half] minmax(0, var(--column-width))
+      [full];
   }
 }
 </style>
