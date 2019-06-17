@@ -215,17 +215,34 @@ export default {
             [this.sortField.field]: index + 1
           };
 
-          if (item[this.junctionRelatedKey].hasOwnProperty(this.relatedPrimaryKeyField)) {
+          const junctionPrimaryKey = item[this.junctionPrimaryKey.field] || null;
+          const itemPrimaryKey = item[this.junctionRelatedKey][this.relatedPrimaryKeyField];
+          const tempKey = item.$tempKey || null;
+
+          if (junctionPrimaryKey) {
+            junctionRow[this.junctionPrimaryKey.field] = junctionPrimaryKey;
+          }
+
+          if (itemPrimaryKey) {
             junctionRow[this.junctionRelatedKey] = {
-              [this.relatedPrimaryKeyField]:
-                item[this.junctionRelatedKey][this.relatedPrimaryKeyField]
+              [this.relatedPrimaryKeyField]: itemPrimaryKey
             };
           } else {
             junctionRow[this.junctionRelatedKey] = item[this.junctionRelatedKey];
           }
 
-          if (item[this.junctionPrimaryKey.field]) {
-            junctionRow[this.junctionPrimaryKey.field] = item[this.junctionPrimaryKey.field];
+          // Find and merge staged value of current row, so we don't lose made edits
+          const currentRowInStaged = _.find(this.stagedValue, item => {
+            return (
+              item[this.junctionPrimaryKey.field] === junctionPrimaryKey ||
+              item.$tempKey === tempKey
+            );
+          });
+
+          const madeEdits = currentRowInStaged && currentRowInStaged[this.junctionRelatedKey];
+
+          if (madeEdits) {
+            junctionRow[this.junctionRelatedKey] = madeEdits;
           }
 
           return junctionRow;
