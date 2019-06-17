@@ -211,7 +211,7 @@ export default {
     },
 
     selectionPrimaryKeys() {
-      return (this.value || [])
+      return (this.items || [])
         .filter(item => item.$delete !== true)
         .map(item => item[this.junctionRelatedKey][this.relatedPrimaryKeyField])
         .filter(key => key); // Filter out empty items
@@ -464,7 +464,50 @@ export default {
       this.stagedSelection = primaryKeys;
     },
 
-    closeSelection() {},
+    closeSelection() {
+      // const currentSelection = _.clone(this.selectionPrimaryKeys);
+      // let newSelection = currentSelection
+      //   // Convert the array of item primary keys to an array of junction row objects
+      //   .map(key => {
+      //     return _.find(this.items, item => {
+      //       return item[this.junctionRelatedKey][this.relatedPrimaryKeyField] === key;
+      //     });
+      //   })
+      //   // Add $delete: true to junction row items that have been deleted
+      //   .map(junctionRow => {
+      //     const itemKey = junctionRow[this.junctionRelatedKey][this.relatedPrimaryKeyField];
+      //     if (this.stagedSelection.includes(itemKey) === false) {
+      //       junctionRow.$delete = true;
+      //     }
+      //     return junctionRow;
+      //   })
+      //   // Only leave the values that actually changed
+      //   .map(junctionRow => {
+      //     let hasBeenEditedBefore = false;
+      //     let edits = null;
+      //     const junctionPrimaryKey = junctionRow[this.junctionPrimaryKey.field];
+      //     this.stagedValue.forEach(item => {
+      //       if (
+      //         item[this.junctionPrimaryKey.field] === junctionPrimaryKey ||
+      //         item.$tempKey === tempKey
+      //       ) {
+      //         hasBeenEditedBefore = true;
+      //         edits = item[this.junctionRelatedKey];
+      //       }
+      //     });
+      //     if (hasBeenEditedBefore) {
+      //       return {
+      //         [this.junctionPrimaryKey.field]: junctionPrimaryKey,
+      //         [this.junctionRelatedKey]: edits
+      //       };
+      //     } else {
+      //       return {
+      //         [this.junctionPrimaryKey.field]: junctionPrimaryKey
+      //       };
+      //     }
+      //   });
+      // console.log(newSelection);
+    },
 
     cancelSelection() {
       this.stagedSelection = null;
