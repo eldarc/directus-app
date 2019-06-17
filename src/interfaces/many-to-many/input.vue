@@ -149,8 +149,6 @@ export default {
       error: null,
       stagedSelection: null,
 
-      initialValue: this.value,
-
       stagedValue: []
     };
   },
@@ -352,55 +350,62 @@ export default {
 
     saveEdits() {
       const edits = _.clone(this.edits);
-      const primaryKey = this.editExisting[this.junctionPrimaryKey.field];
-      const tempKey = this.editExisting.$tempKey;
+      const junctionPrimaryKey = this.editExisting[this.junctionPrimaryKey.field] || null;
+      const itemPrimaryKey =
+        this.editExisting[this.junctionRelatedKey][this.relatedPrimaryKeyField] || null;
+      const tempKey = this.editExisting.$tempKey || null;
 
-      const junctionFieldName = this.relation.junction.field_many.field;
-
-      const updatedJunctionRow = {
-        [junctionFieldName]: edits
+      const junctionRow = {
+        [this.junctionRelatedKey]: edits
       };
 
-      if (primaryKey) {
-        updatedJunctionRow[this.junctionPrimaryKey.field] = primaryKey;
+      if (junctionPrimaryKey) {
+        junctionRow[this.junctionPrimaryKey.field] = junctionPrimaryKey;
       } else {
-        updatedJunctionRow.$tempKey = tempKey;
+        junctionRow.$tempKey = tempKey;
       }
 
-      this.items = this.items.map(item => {
-        if (item[this.junctionPrimaryKey.field] === primaryKey || item.$tempKey === tempKey) {
-          return _.merge(_.clone(item), {
-            [this.junctionRelatedKey]: edits
-          });
-        }
+      if (itemPrimaryKey) {
+        junctionRow[this.junctionRelatedKey][this.relatedPrimaryKeyField] = itemPrimaryKey;
+      }
 
-        return item;
-      });
-
-      let wasEditedBefore = false;
-
+      let hasBeenEditedBefore = false;
       this.stagedValue.forEach(item => {
-        if (item[this.junctionPrimaryKey.field] === primaryKey || item.$tempKey === tempKey) {
-          wasEditedBefore = true;
+        if (
+          item[this.junctionPrimaryKey.field] === junctionPrimaryKey ||
+          item.$tempKey === tempKey
+        ) {
+          hasBeenEditedBefore = true;
         }
       });
 
-      if (wasEditedBefore) {
+      if (hasBeenEditedBefore) {
         this.emitValue(
           this.stagedValue.map(item => {
-            if (item[this.junctionPrimaryKey.field] === primaryKey || item.$tempKey === tempKey) {
-              item[this.junctionRelatedKey] = _.merge(
-                _.clone(item[this.junctionRelatedKey]),
-                edits
-              );
+            if (
+              item[this.junctionPrimaryKey.field] === junctionPrimaryKey ||
+              item.$tempKey === tempKey
+            ) {
+              return junctionRow;
             }
 
             return item;
           })
         );
       } else {
-        this.emitValue([...this.stagedValue, updatedJunctionRow]);
+        this.emitValue([...this.stagedValue, junctionRow]);
       }
+
+      this.items = this.items.map(item => {
+        if (
+          item[this.junctionPrimaryKey.field] === junctionPrimaryKey ||
+          item.$tempKey === tempKey
+        ) {
+          return _.merge(_.clone(item), junctionRow);
+        }
+
+        return item;
+      });
 
       this.editExisting = null;
       this.edits = {};
