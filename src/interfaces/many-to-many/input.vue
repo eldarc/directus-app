@@ -26,10 +26,18 @@
             </button>
           </div>
         </div>
-        <div class="body">
+        <draggable
+          v-model="itemsSorted"
+          class="body"
+          handle=".drag-handle"
+          :disabled="!sortable || !manualSortActive"
+          :class="{ dragging }"
+          @start="dragging = true"
+          @end="dragging = false"
+        >
           <div
             v-for="item in itemsSorted"
-            :key="item[relatedPrimaryKeyField] || item.$tempKey"
+            :key="item[junctionRelatedKey][relatedPrimaryKeyField] || item.$tempKey"
             class="row"
           >
             <div v-if="sortable" class="sort-column" :class="{ disabled: !manualSortActive }">
@@ -44,11 +52,13 @@
               :collection="field.collection"
               :datatype="field.datatype"
               :options="field.options"
-              :value="item[field.field]"
+              :value="item[junctionRelatedKey][field.field]"
             />
           </div>
-        </div>
+        </draggable>
       </div>
+
+      <v-notice v-else>{{ $t("no_items_selected") }}</v-notice>
 
       <div class="buttons">
         <v-button
@@ -110,7 +120,7 @@ export default {
 
       dragging: false,
 
-      items: [],
+      items: this.value || [],
       loading: false,
       error: null,
       stagedSelection: null,
@@ -148,19 +158,59 @@ export default {
       });
     },
 
-    // The name of the field that holds the primary key in the related (not JT)
-    // collection
+    // The name of the field that holds the primary key in the related (not JT) collection
     relatedPrimaryKeyField() {
       return _.find(this.relation.junction.collection_one.fields, { primary_key: true }).field;
     },
 
     // The items in this.items, but sorted by the values in this.sort
-    itemsSorted() {
-      if (this.sort.field === "$manual") {
-        return _.orderBy(this.items, item => item.$sort, this.sort.asc ? "asc" : "desc");
-      }
+    itemsSorted: {
+      get() {
+        if (this.sort.field === "$manual") {
+          return _.orderBy(
+            this.items,
+            item => item[this.sortField.field],
+            this.sort.asc ? "asc" : "desc"
+          );
+        }
 
-      return _.orderBy(this.items, item => item[this.sort.field], this.sort.asc ? "asc" : "desc");
+        return _.orderBy(
+          this.items,
+          item => item[this.junctionRelatedKey][this.sort.field],
+          this.sort.asc ? "asc" : "desc"
+        );
+      },
+      set(newValue) {
+        let value = _.clone(newValue);
+
+        this.items = value.map((item, index) => ({
+          ...item,
+          [this.sortField.field]: index + 1
+        }));
+
+        value = value.map((item, index) => {
+          const junctionRow = {
+            [this.sortField.field]: index + 1
+          };
+
+          if (item[this.junctionRelatedKey].hasOwnProperty(this.relatedPrimaryKeyField)) {
+            junctionRow[this.junctionRelatedKey] = {
+              [this.relatedPrimaryKeyField]:
+                item[this.junctionRelatedKey][this.relatedPrimaryKeyField]
+            };
+          } else {
+            junctionRow[this.junctionRelatedKey] = item[this.junctionRelatedKey];
+          }
+
+          if (item[this.junctionPrimaryKey.field]) {
+            junctionRow[this.junctionPrimaryKey.field] = item[this.junctionPrimaryKey.field];
+          }
+
+          return junctionRow;
+        });
+
+        this.emitValue(value);
+      }
     },
 
     // The default values for the form fields including the edits that have been made
@@ -186,34 +236,24 @@ export default {
 
     manualSortActive() {
       return this.sort.field === "$manual";
+    },
+
+    junctionPrimaryKeyField() {
+      return _.find(this.relation.collection_many.fields, {
+        primary_key: true
+      });
+    },
+
+    // The key in the junction row that holds the data of the related item
+    junctionRelatedKey() {
+      return this.relation.junction.field_many.field;
+    },
+
+    junctionPrimaryKey() {
+      return _.find(this.relation.junction.collection_many.fields, { primary_key: true });
     }
   },
   created() {
-    // Flatten the array of junction table rows into the items in the related
-    // collection. This means we keep a different local state vs the changes
-    // we stage.
-    if (this.value && this.value.length > 0) {
-      this.items = this.value
-        .map(junctionRow => {
-          const junctionPrimaryKeyField = _.find(this.relation.collection_many.fields, {
-            primary_key: true
-          });
-          const junctionSortField = _.find(this.relation.collection_many.fields, { type: "sort" });
-
-          const relatedItem = junctionRow[this.relation.junction.field_many.field];
-
-          relatedItem.$junctionKey = junctionRow[junctionPrimaryKeyField.field];
-
-          if (junctionSortField) {
-            relatedItem.$sort = junctionRow[junctionSortField];
-          }
-
-          return relatedItem;
-        })
-        // Filter out junction row items where the related movie is null
-        .filter(item => item);
-    }
-
     // Set the default sort column
     this.sort.field = this.visibleFields[0].field;
   },
@@ -233,17 +273,15 @@ export default {
 
     addNewItem() {
       const junctionFieldName = this.relation.junction.field_many.field;
-      const value = _.clone(this.defaultsWithEdits);
 
       const newJunctionRow = {
-        [junctionFieldName]: this.edits
+        [junctionFieldName]: this.edits,
+        $tempKey: shortid.generate()
       };
 
-      value.$tempKey = shortid.generate();
+      this.items = [..._.clone(this.items), newJunctionRow];
 
-      this.emitValue([...this.stagedValue, newJunctionRow]);
-
-      this.items = [...this.items, value];
+      this.emitValue([...this.stagedValue, _.clone(newJunctionRow)]);
 
       this.edits = {};
       this.addNew = false;
@@ -265,7 +303,6 @@ export default {
       });
 
       this.stagedValue = newValue;
-
       this.$emit("input", newValue);
     },
 
