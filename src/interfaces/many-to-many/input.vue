@@ -81,6 +81,7 @@
 
 <script>
 import mixin from "@directus/extension-toolkit/mixins/interface";
+import shortid from "shortid";
 
 export default {
   name: "InterfaceManyToMany",
@@ -194,6 +195,8 @@ export default {
         [junctionFieldName]: this.edits
       };
 
+      value.$tempKey = shortid.generate();
+
       this.emitValue([...this.stagedValue, newJunctionRow]);
 
       this.items = [...this.items, value];
@@ -208,7 +211,17 @@ export default {
     },
 
     emitValue(newValue) {
+      // Filter out the temp keys
+      newValue = newValue.map(item => {
+        if (item.hasOwnProperty("$tempKey")) {
+          delete item.$tempKey;
+        }
+
+        return item;
+      });
+
       this.stagedValue = newValue;
+
       this.$emit("input", newValue);
     }
   }
