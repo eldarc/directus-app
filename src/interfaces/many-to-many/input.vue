@@ -8,6 +8,9 @@
       <div v-if="items.length" class="table">
         <div class="header">
           <div class="row">
+            <button v-if="sortable" class="sort-column" @click="toggleManualSort">
+              <v-icon name="sort" size="18" :color="manualSortActive ? 'action' : 'light-gray'" />
+            </button>
             <button
               v-for="field in visibleFields"
               :key="field.field"
@@ -24,7 +27,14 @@
           </div>
         </div>
         <div class="body">
-          <div v-for="item in itemsSorted" :key="item[relatedPrimaryKeyField]" class="row">
+          <div
+            v-for="item in itemsSorted"
+            :key="item[relatedPrimaryKeyField] || item.$tempKey"
+            class="row"
+          >
+            <div v-if="sortable" class="sort-column" :class="{ disabled: !manualSortActive }">
+              <v-icon name="drag_handle" class="drag-handle" />
+            </div>
             <v-ext-display
               v-for="field in visibleFields"
               :key="field.field"
@@ -146,15 +156,36 @@ export default {
 
     // The items in this.items, but sorted by the values in this.sort
     itemsSorted() {
+      if (this.sort.field === "$manual") {
+        return _.orderBy(this.items, item => item.$sort, this.sort.asc ? "asc" : "desc");
+      }
+
       return _.orderBy(this.items, item => item[this.sort.field], this.sort.asc ? "asc" : "desc");
     },
 
+    // The default values for the form fields including the edits that have been made
     defaultsWithEdits() {
       const relatedCollectionFields = this.relation.junction.collection_one.fields;
 
       const defaults = _.mapValues(relatedCollectionFields, field => field.default_value);
 
       return _.merge({}, defaults, this.edits);
+    },
+
+    // Field in the junction table that holds the sort value in the junction table
+    sortField() {
+      const junctionTableFields = this.relation.collection_many.fields;
+      const sortField = _.find(junctionTableFields, { type: "sort" });
+      return sortField;
+    },
+
+    // If the items can be manually sorted
+    sortable() {
+      return !!this.sortField;
+    },
+
+    manualSortActive() {
+      return this.sort.field === "$manual";
     }
   },
   created() {
@@ -164,7 +195,20 @@ export default {
     if (this.value && this.value.length > 0) {
       this.items = this.value
         .map(junctionRow => {
-          return junctionRow[this.relation.junction.field_many.field];
+          const junctionPrimaryKeyField = _.find(this.relation.collection_many.fields, {
+            primary_key: true
+          });
+          const junctionSortField = _.find(this.relation.collection_many.fields, { type: "sort" });
+
+          const relatedItem = junctionRow[this.relation.junction.field_many.field];
+
+          relatedItem.$junctionKey = junctionRow[junctionPrimaryKeyField.field];
+
+          if (junctionSortField) {
+            relatedItem.$sort = junctionRow[junctionSortField];
+          }
+
+          return relatedItem;
         })
         // Filter out junction row items where the related movie is null
         .filter(item => item);
@@ -223,6 +267,11 @@ export default {
       this.stagedValue = newValue;
 
       this.$emit("input", newValue);
+    },
+
+    toggleManualSort() {
+      this.sort.field = "$manual";
+      this.sort.asc = true;
     }
   }
 };
@@ -309,6 +358,23 @@ export default {
       }
     }
   }
+
+  .sort-column {
+    flex-basis: 36px !important;
+
+    &.disabled i {
+      color: var(--lightest-gray);
+      cursor: not-allowed;
+    }
+  }
+}
+
+.drag-handle {
+  cursor: grab;
+}
+
+.dragging {
+  cursor: grabbing !important;
 }
 
 .buttons {
