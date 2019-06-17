@@ -254,8 +254,12 @@ export default {
     }
   },
   created() {
-    // Set the default sort column
-    this.sort.field = this.visibleFields[0].field;
+    if (this.sortable) {
+      this.sort.field = "$manual";
+    } else {
+      // Set the default sort column
+      this.sort.field = this.visibleFields[0].field;
+    }
   },
   methods: {
     // Change the sort position to the provided field. If the same field is
