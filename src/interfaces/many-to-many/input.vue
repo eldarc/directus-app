@@ -71,8 +71,29 @@
         >
           {{ $t("add_new") }}
         </v-button>
+
+        <v-button
+          v-if="options.allow_select"
+          type="button"
+          :disabled="readonly"
+          icon="playlist_add"
+          @click="selectExisting = true"
+        >
+          {{ $t("select_existing") }}
+        </v-button>
       </div>
     </template>
+
+    <v-item-select
+      v-if="selectExisting"
+      :fields="visibleFieldNames"
+      :collection="relation.junction.collection_one.collection"
+      :filters="[]"
+      :value="stagedSelection || selectionPrimaryKeys"
+      @input="stageSelection"
+      @done="closeSelection"
+      @cancel="cancelSelection"
+    />
 
     <portal v-if="editExisting" to="modal">
       <v-modal
@@ -180,9 +201,20 @@ export default {
       });
     },
 
+    visibleFieldNames() {
+      return this.visibleFields.map(field => field.field);
+    },
+
     // The name of the field that holds the primary key in the related (not JT) collection
     relatedPrimaryKeyField() {
       return _.find(this.relation.junction.collection_one.fields, { primary_key: true }).field;
+    },
+
+    selectionPrimaryKeys() {
+      return (this.value || [])
+        .filter(item => item.$delete !== true)
+        .map(item => item[this.junctionRelatedKey][this.relatedPrimaryKeyField])
+        .filter(key => key); // Filter out empty items
     },
 
     // The items in this.items, but sorted by the values in this.sort
@@ -426,6 +458,17 @@ export default {
 
       this.editExisting = null;
       this.edits = {};
+    },
+
+    stageSelection(primaryKeys) {
+      this.stagedSelection = primaryKeys;
+    },
+
+    closeSelection() {},
+
+    cancelSelection() {
+      this.stagedSelection = null;
+      this.selectExisting = null;
     }
   }
 };
