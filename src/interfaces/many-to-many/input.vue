@@ -161,10 +161,16 @@ export default {
     // collection. This means we keep a different local state vs the changes
     // we stage.
     if (this.value && this.value.length > 0) {
-      this.items = this.value.map(junctionRow => {
-        return junctionRow[this.relation.junction.field_many.field];
-      });
+      this.items = this.value
+        .map(junctionRow => {
+          return junctionRow[this.relation.junction.field_many.field];
+        })
+        // Filter out junction row items where the related movie is null
+        .filter(item => item);
     }
+
+    // Set the default sort column
+    this.sort.field = this.visibleFields[0].field;
   },
   methods: {
     // Change the sort position to the provided field. If the same field is
