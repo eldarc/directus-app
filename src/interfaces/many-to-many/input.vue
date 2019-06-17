@@ -39,6 +39,7 @@
             v-for="item in itemsSorted"
             :key="item[junctionRelatedKey][relatedPrimaryKeyField] || item.$tempKey"
             class="row"
+            @click="startEdit(item[junctionPrimaryKey.field], item.$tempKey)"
           >
             <div v-if="sortable" class="sort-column" :class="{ disabled: !manualSortActive }">
               <v-icon name="drag_handle" class="drag-handle" />
@@ -72,6 +73,29 @@
         </v-button>
       </div>
     </template>
+
+    <portal v-if="editExisting" to="modal">
+      <v-modal
+        :title="$t('editing_item')"
+        :buttons="{
+          save: {
+            text: $t('save'),
+            color: 'accent'
+          }
+        }"
+        @close="editExisting = false"
+        @save="saveEdits"
+      >
+        <div class="edit-modal-body">
+          <v-form
+            :fields="relation.junction.collection_one.fields"
+            :collection="relation.junction.collection_one.collection"
+            :values="editExisting[junctionRelatedKey]"
+            @stage-value="stageValue"
+          />
+        </div>
+      </v-modal>
+    </portal>
 
     <portal v-if="addNew" to="modal">
       <v-modal
@@ -238,12 +262,6 @@ export default {
       return this.sort.field === "$manual";
     },
 
-    junctionPrimaryKeyField() {
-      return _.find(this.relation.collection_many.fields, {
-        primary_key: true
-      });
-    },
-
     // The key in the junction row that holds the data of the related item
     junctionRelatedKey() {
       return this.relation.junction.field_many.field;
@@ -313,6 +331,79 @@ export default {
     toggleManualSort() {
       this.sort.field = "$manual";
       this.sort.asc = true;
+    },
+
+    startEdit(primaryKey, tempKey) {
+      if (!primaryKey) {
+        const values = _.find(this.items, { $tempKey: tempKey });
+        this.editExisting = values;
+        return;
+      }
+
+      // If we're not editing a newly created item, fetch the values "fresh"
+      const collection = this.relation.collection_many.collection;
+
+      this.$api
+        .getItem(collection, primaryKey, { fields: "*.*.*" })
+        .then(res => res.data)
+        .then(item => (this.editExisting = item))
+        .catch(console.error);
+    },
+
+    saveEdits() {
+      const edits = _.clone(this.edits);
+      const primaryKey = this.editExisting[this.junctionPrimaryKey.field];
+      const tempKey = this.editExisting.$tempKey;
+
+      const junctionFieldName = this.relation.junction.field_many.field;
+
+      const updatedJunctionRow = {
+        [junctionFieldName]: edits
+      };
+
+      if (primaryKey) {
+        updatedJunctionRow[this.junctionPrimaryKey.field] = primaryKey;
+      } else {
+        updatedJunctionRow.$tempKey = tempKey;
+      }
+
+      this.items = this.items.map(item => {
+        if (item[this.junctionPrimaryKey.field] === primaryKey || item.$tempKey === tempKey) {
+          return _.merge(_.clone(item), {
+            [this.junctionRelatedKey]: edits
+          });
+        }
+
+        return item;
+      });
+
+      let wasEditedBefore = false;
+
+      this.stagedValue.forEach(item => {
+        if (item[this.junctionPrimaryKey.field] === primaryKey || item.$tempKey === tempKey) {
+          wasEditedBefore = true;
+        }
+      });
+
+      if (wasEditedBefore) {
+        this.emitValue(
+          this.stagedValue.map(item => {
+            if (item[this.junctionPrimaryKey.field] === primaryKey || item.$tempKey === tempKey) {
+              item[this.junctionRelatedKey] = _.merge(
+                _.clone(item[this.junctionRelatedKey]),
+                edits
+              );
+            }
+
+            return item;
+          })
+        );
+      } else {
+        this.emitValue([...this.stagedValue, updatedJunctionRow]);
+      }
+
+      this.editExisting = null;
+      this.edits = {};
     }
   }
 };
