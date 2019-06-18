@@ -391,7 +391,7 @@ export default {
     async startEdit(primaryKey, tempKey) {
       if (!primaryKey) {
         const values = _.find(this.items, { $tempKey: tempKey });
-        this.editExisting = values[this.junctionRelatedKey];
+        this.editExisting = values;
         return;
       }
 
