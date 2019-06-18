@@ -168,7 +168,7 @@ export default {
       items: [],
       loading: false,
       error: null,
-      stagedSelection: null,
+      stagedSelection: [],
 
       stagedValue: [],
       initialValue: this.value || []
@@ -576,7 +576,7 @@ export default {
       newLocalItemState = [...newLocalItemState, ...newlyAddedItemsWithData];
       this.items = newLocalItemState;
 
-      this.stagedSelection = null;
+      this.stagedSelection = [];
       this.selectExisting = null;
 
       // Use initial value to create list of delete flags, only add additions for newly selected items
@@ -594,7 +594,7 @@ export default {
     },
 
     cancelSelection() {
-      this.stagedSelection = null;
+      this.stagedSelection = [];
       this.selectExisting = null;
     }
   }

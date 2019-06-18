@@ -368,7 +368,7 @@ export default {
 .items label > *:first-child,
 .items .head > *:first-child {
   max-width: 20px;
-  padding: 8px 20px 8px 0;
+  padding: 8px 32px 8px 0;
 }
 .input input,
 .search-sort input[type="checkbox"] {
