@@ -494,10 +494,13 @@
 
       <label for="__width">{{ $t("field_width") }}</label>
       <v-simple-select v-model="width" name="__width">
-        <option value="half">Half</option>
-        <option value="full">Full</option>
-        <option value="fill">Fill the page</option>
+        <option value="half">Half Width (Wraps)</option>
+        <option value="half-left">Half Width (Left Only)</option>
+        <option value="half-right">Half Width (Right Only)</option>
+        <option value="full">Full Width</option>
+        <option value="fill">Fill the Page</option>
       </v-simple-select>
+      <p class="note">{{ $t("field_width_note") }}</p>
 
       <hr />
 

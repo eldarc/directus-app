@@ -208,6 +208,8 @@ export default {
   field_type: "Field Type",
   field_updated: "{field} Field Updated",
   field_width: "Field Width",
+  field_width_note:
+    "The width of this field within the form's layout. Widths wrap differently, so form placement may also be affected (in combination with the field's sort value).",
   fields: "Fields",
   fields_are_saved_instantly: "Changes to fields are saved instantly",
   fieldtypes: {
