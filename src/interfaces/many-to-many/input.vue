@@ -44,17 +44,17 @@
             <div v-if="sortable" class="sort-column" :class="{ disabled: !manualSortActive }">
               <v-icon name="drag_handle" class="drag-handle" />
             </div>
-            <v-ext-display
-              v-for="field in visibleFields"
-              :key="field.field"
-              :interface-type="field.interface"
-              :name="field.field"
-              :type="field.type"
-              :collection="field.collection"
-              :datatype="field.datatype"
-              :options="field.options"
-              :value="item[junctionRelatedKey][field.field]"
-            />
+            <div v-for="field in visibleFields" :key="field.field">
+              <v-ext-display
+                :interface-type="field.interface"
+                :name="field.field"
+                :type="field.type"
+                :collection="field.collection"
+                :datatype="field.datatype"
+                :options="field.options"
+                :value="item[junctionRelatedKey][field.field]"
+              />
+            </div>
           </div>
         </draggable>
       </div>
