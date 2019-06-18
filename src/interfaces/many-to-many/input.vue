@@ -165,12 +165,13 @@ export default {
 
       dragging: false,
 
-      items: this.value || [],
+      items: [],
       loading: false,
       error: null,
       stagedSelection: null,
 
-      stagedValue: []
+      stagedValue: [],
+      initialValue: this.value || []
     };
   },
   computed: {
@@ -211,10 +212,14 @@ export default {
     },
 
     selectionPrimaryKeys() {
-      return (this.items || [])
-        .filter(item => item.$delete !== true)
-        .map(item => item[this.junctionRelatedKey][this.relatedPrimaryKeyField])
-        .filter(key => key); // Filter out empty items
+      return (
+        (this.items || [])
+          // Make sure we don't try to read movies that don't exist for some reason
+          .filter(item => item[this.junctionRelatedKey] !== null)
+          .filter(item => item.$delete !== true)
+          .map(item => item[this.junctionRelatedKey][this.relatedPrimaryKeyField])
+          .filter(key => key)
+      ); // Filter out empty items
     },
 
     // The items in this.items, but sorted by the values in this.sort
@@ -325,6 +330,9 @@ export default {
       // Set the default sort column
       this.sort.field = this.visibleFields[0].field;
     }
+
+    // Set the initial set of items. Filter out any broken junction records
+    this.items = (this.value || []).filter(item => item[this.junctionRelatedKey]);
   },
   methods: {
     // Change the sort position to the provided field. If the same field is
@@ -464,49 +472,116 @@ export default {
       this.stagedSelection = primaryKeys;
     },
 
-    closeSelection() {
-      // const currentSelection = _.clone(this.selectionPrimaryKeys);
-      // let newSelection = currentSelection
-      //   // Convert the array of item primary keys to an array of junction row objects
-      //   .map(key => {
-      //     return _.find(this.items, item => {
-      //       return item[this.junctionRelatedKey][this.relatedPrimaryKeyField] === key;
-      //     });
-      //   })
-      //   // Add $delete: true to junction row items that have been deleted
-      //   .map(junctionRow => {
-      //     const itemKey = junctionRow[this.junctionRelatedKey][this.relatedPrimaryKeyField];
-      //     if (this.stagedSelection.includes(itemKey) === false) {
-      //       junctionRow.$delete = true;
-      //     }
-      //     return junctionRow;
-      //   })
-      //   // Only leave the values that actually changed
-      //   .map(junctionRow => {
-      //     let hasBeenEditedBefore = false;
-      //     let edits = null;
-      //     const junctionPrimaryKey = junctionRow[this.junctionPrimaryKey.field];
-      //     this.stagedValue.forEach(item => {
-      //       if (
-      //         item[this.junctionPrimaryKey.field] === junctionPrimaryKey ||
-      //         item.$tempKey === tempKey
-      //       ) {
-      //         hasBeenEditedBefore = true;
-      //         edits = item[this.junctionRelatedKey];
-      //       }
-      //     });
-      //     if (hasBeenEditedBefore) {
-      //       return {
-      //         [this.junctionPrimaryKey.field]: junctionPrimaryKey,
-      //         [this.junctionRelatedKey]: edits
-      //       };
-      //     } else {
-      //       return {
-      //         [this.junctionPrimaryKey.field]: junctionPrimaryKey
-      //       };
-      //     }
-      //   });
-      // console.log(newSelection);
+    async closeSelection() {
+      const primaryKeysThatAreSelected = _.clone(this.stagedSelection);
+      const savedValue = _.clone(this.initialValue);
+
+      const deletedItems = savedValue
+        // Extract the items that were deleted by deselecting compared to the moment the interface
+        // was loaded
+        .filter(savedItem => {
+          const relatedPrimaryKey = savedItem[this.junctionRelatedKey][this.relatedPrimaryKeyField];
+          return primaryKeysThatAreSelected.includes(relatedPrimaryKey) === false;
+        })
+        // Convert the junction rows to { [id-field]: [id], $delete: true } so they will be deleted
+        // by the API on save
+        .map(deletedItem => {
+          return {
+            [this.junctionPrimaryKey.field]: deletedItem[this.junctionPrimaryKey.field],
+            $delete: true
+          };
+        });
+
+      const currentlySavedPrimaryKeys = savedValue.map(
+        junctionRow => junctionRow[this.junctionRelatedKey][this.relatedPrimaryKeyField]
+      );
+
+      const newlyAddedItems = primaryKeysThatAreSelected
+        // Extract the items that weren't selected before
+        .filter(primaryKey => {
+          return currentlySavedPrimaryKeys.includes(primaryKey) === false;
+        })
+        // Convert the newly selected items to junction row objects
+        .map(primaryKey => {
+          return {
+            $tempKey: shortid.generate(),
+            [this.junctionRelatedKey]: {
+              [this.relatedPrimaryKeyField]: primaryKey
+            }
+          };
+        });
+
+      this.emitValue([...this.stagedValue, ...deletedItems, ...newlyAddedItems]);
+
+      const deleteJunctionRowKeys = deletedItems.map(junctionRow => {
+        return junctionRow[this.junctionPrimaryKey.field];
+      });
+
+      let newLocalItemState = savedValue
+        // filter out the deleted items
+        .filter(junctionRow => {
+          const primaryKey = junctionRow[this.junctionPrimaryKey.field];
+          return deleteJunctionRowKeys.includes(primaryKey) === false;
+        })
+        // Apply the previously made edits
+        .map(junctionRow => {
+          const primaryKey = junctionRow[this.junctionPrimaryKey.field];
+
+          const edits = _.find(this.stagedValue, { [this.junctionPrimaryKey.field]: primaryKey });
+
+          if (edits) {
+            return _.merge({}, junctionRow, edits);
+          }
+
+          return junctionRow;
+        });
+
+      const newlyAddedItemPrimaryKeys = newlyAddedItems.map(junctionRow => {
+        return junctionRow[this.junctionRelatedKey][this.relatedPrimaryKeyField];
+      });
+
+      let items = [];
+
+      if (newlyAddedItemPrimaryKeys.length > 0) {
+        // Fetch the data for the selected items fresh so we can display it on the table
+        const { data } = await this.$api.getItem(
+          this.relation.junction.collection_one.collection,
+          newlyAddedItemPrimaryKeys,
+          {
+            limit: -1
+          }
+        );
+
+        items = Array.isArray(data) ? data : [data];
+      }
+
+      // Augment the newly selected items with the data from the database
+      const newlyAddedItemsWithData = newlyAddedItems.map(junctionRow => {
+        const itemKey = junctionRow[this.junctionRelatedKey][this.relatedPrimaryKeyField];
+
+        return _.merge({}, junctionRow, {
+          [this.junctionRelatedKey]: _.find(items, { [this.relatedPrimaryKeyField]: itemKey })
+        });
+      });
+
+      newLocalItemState = [...newLocalItemState, ...newlyAddedItemsWithData];
+      this.items = newLocalItemState;
+
+      this.stagedSelection = null;
+      this.selectExisting = null;
+
+      // Use initial value to create list of delete flags, only add additions for newly selected items
+      // Apply changes in currentStagedValue on top of this list
+      // Emit those changes
+
+      // We need to add the $delete flag to all the items that were selected before, but aren't
+      // anymore now.
+
+      // All items that have been selected that weren't selected before need to be added
+
+      // All edits to items that were made before need to be maintained
+
+      // The sort order needs to be maintained
     },
 
     cancelSelection() {
