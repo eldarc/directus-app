@@ -539,6 +539,12 @@ export default {
           return junctionRow;
         });
 
+      // Add the previously newly created items
+      const newlyCreatedRows = this.items.filter(junctionRow =>
+        junctionRow.hasOwnProperty("$tempKey")
+      );
+      newLocalItemState = [...newLocalItemState, ...newlyCreatedRows];
+
       const newlyAddedItemPrimaryKeys = newlyAddedItems.map(junctionRow => {
         return junctionRow[this.junctionRelatedKey][this.relatedPrimaryKeyField];
       });
