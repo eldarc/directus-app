@@ -388,21 +388,24 @@ export default {
       this.sort.asc = true;
     },
 
-    startEdit(primaryKey, tempKey) {
+    async startEdit(primaryKey, tempKey) {
       if (!primaryKey) {
         const values = _.find(this.items, { $tempKey: tempKey });
-        this.editExisting = values;
+        this.editExisting = values[this.junctionRelatedKey];
         return;
       }
 
       // If we're not editing a newly created item, fetch the values "fresh"
       const collection = this.relation.collection_many.collection;
 
-      this.$api
-        .getItem(collection, primaryKey, { fields: "*.*.*" })
-        .then(res => res.data)
-        .then(item => (this.editExisting = item))
-        .catch(console.error);
+      const res = await this.$api.getItem(collection, primaryKey, { fields: "*.*.*" });
+      const item = res.data;
+
+      const edits = _.find(this.stagedValue, { [this.junctionPrimaryKey.field]: primaryKey });
+
+      // Find existing edits so we can merge them with the values from the database to show the most
+      // up to date data on subsequent edits of the same item
+      this.editExisting = _.merge({}, item, edits);
     },
 
     saveEdits() {
