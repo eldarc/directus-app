@@ -168,7 +168,7 @@ export default {
       items: [],
       loading: false,
       error: null,
-      stagedSelection: [],
+      stagedSelection: null,
 
       stagedValue: [],
       initialValue: this.value || []
@@ -476,7 +476,7 @@ export default {
     },
 
     async closeSelection() {
-      const primaryKeysThatAreSelected = _.clone(this.stagedSelection);
+      const primaryKeysThatAreSelected = this.stagedSelection || [];
       const savedValue = _.clone(this.initialValue);
 
       const deletedItems = savedValue
@@ -576,7 +576,7 @@ export default {
       newLocalItemState = [...newLocalItemState, ...newlyAddedItemsWithData];
       this.items = newLocalItemState;
 
-      this.stagedSelection = [];
+      this.stagedSelection = null;
       this.selectExisting = null;
 
       // Use initial value to create list of delete flags, only add additions for newly selected items
@@ -594,7 +594,7 @@ export default {
     },
 
     cancelSelection() {
-      this.stagedSelection = [];
+      this.stagedSelection = null;
       this.selectExisting = null;
     }
   }
