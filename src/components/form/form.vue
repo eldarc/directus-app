@@ -128,16 +128,17 @@ export default {
       // Change the class to half-right if the current element is preceded by another half width field
       // this makes them align side by side
       fields = fields.map((fieldInfo, index) => {
-        if (index === 0) return fieldInfo;
+        const fieldInfoClone = _.clone(fieldInfo);
+        if (index === 0) return fieldInfoClone;
 
-        if (fieldInfo.width === "half") {
+        if (fieldInfoClone.width === "half") {
           const prevField = fields[index - 1];
 
           if (prevField.width === "half") {
-            fieldInfo.width = "half-right";
+            fieldInfoClone.width = "half-right";
           }
         }
-        return fieldInfo;
+        return fieldInfoClone;
       });
 
       return fields;
