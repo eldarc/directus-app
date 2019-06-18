@@ -425,6 +425,10 @@ export default {
         junctionRow.$tempKey = tempKey;
       }
 
+      if (this.sortField.field && this.editExisting.hasOwnProperty(this.sortField.field)) {
+        junctionRow[this.sortField.field] = this.editExisting[this.sortField.field];
+      }
+
       if (itemPrimaryKey) {
         junctionRow[this.junctionRelatedKey][this.relatedPrimaryKeyField] = itemPrimaryKey;
       }
