@@ -5,14 +5,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="shortcut icon" href="<%= webpackConfig.output.publicPath %>favicon.ico">
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="manifest" href="<%= webpackConfig.output.publicPath %>manifest.webmanifest" />
     <title>Directus</title>
-
-    <% if (process.env.NODE_ENV === "development") { %>
-    <link rel="stylesheet" href="/style.css" />
-    <% } else { %>
-    <link rel="stylesheet" href="./style.css" />
-    <% } %>
+    <link rel="stylesheet" href="<%= webpackConfig.output.publicPath %>style.css" />
   </head>
   <body>
     <noscript>
@@ -21,12 +16,7 @@
     <div id="app"></div>
     <!-- built files will be auto injected -->
 
-    <% if (process.env.NODE_ENV === "development") { %>
-    <script src="/config.js"></script>
-    <script src="/script.js"></script>
-    <% } else { %>
-    <script src="./config.js"></script>
-    <script src="./script.js"></script>
-    <% } %>
+    <script src="<%= webpackConfig.output.publicPath %>config.js"></script>
+    <script src="<%= webpackConfig.output.publicPath %>script.js"></script>
   </body>
 </html>
