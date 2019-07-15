@@ -276,20 +276,21 @@ export default {
     selectItems(newSelection) {
       // this.value is an array of the junction collection rows
       const currentValue = this.value || [];
-      const currentSelection = currentValue.map(jr => jr[this.junctionFieldName]);
+      const currentSelection = currentValue
+        .filter(jr => !jr.hasOwnProperty("$delete"))
+        .map(jr => jr[this.junctionFieldName]);
 
       const relatedPrimaryKeyFieldName = this.relatedPrimaryKeyField.field;
 
       const currentSelectionIDs = currentSelection.map(file => file[relatedPrimaryKeyFieldName]);
       const newSelectionIDs = newSelection.map(file => file[relatedPrimaryKeyFieldName]);
-
-      // We need to merge both the selections where the current selected files
-      // that aren't selected anymore get the $delete flag. Files that are selected
-      // that weren't selected before need to be added as file object.
       const deletedFileIDs = currentSelectionIDs.filter(
         id => newSelectionIDs.includes(id) === false
       );
 
+      // We need to merge both the selections where the current selected files
+      // that aren't selected anymore get the $delete flag. Files that are selected
+      // that weren't selected before need to be added as file object.
       const junctionRowsForDeletedFiles = currentValue
         .filter(jr =>
           deletedFileIDs.includes(jr[this.junctionFieldName][relatedPrimaryKeyFieldName])
@@ -299,15 +300,41 @@ export default {
           $delete: true
         }));
 
+      const junctionRowsForCurrentFiles = currentValue.filter(
+        jr => !deletedFileIDs.includes(jr[this.junctionFieldName][relatedPrimaryKeyFieldName])
+      );
+
+      const junctionRowsForNewFiles = newSelection
+        .filter(s => !currentSelectionIDs.includes(s.id))
+        .map(s => {
+          return {
+            [this.junctionFieldName]: s
+          };
+        });
+
       // Finally, we have to convert the array of selected items into an array
       // of junction table records
-      const junctionRows = newSelection.map(s => {
-        return {
-          [this.junctionFieldName]: s
-        };
+      const collectionIdKey = `${this.relation.collection_one.collection}_id`;
+      const preparedValue = [
+        ...junctionRowsForCurrentFiles,
+        ...junctionRowsForNewFiles,
+        ...junctionRowsForDeletedFiles
+      ].map(row => {
+        // Leave only the id key for the collection holding files as a field.
+        // Storing other data will cause patch issues.
+        if (row[collectionIdKey]) {
+          return {
+            ...row,
+            [collectionIdKey]: {
+              id: row[collectionIdKey].id
+            }
+          };
+        } else {
+          return row;
+        }
       });
 
-      this.$emit("input", [...junctionRowsForDeletedFiles, ...junctionRows]);
+      this.$emit("input", preparedValue);
     },
 
     /*
@@ -315,17 +342,30 @@ export default {
      * Should add the delete flag to the junction row
      */
     deleteFile(id) {
+      const collectionIdKey = `${this.relation.collection_one.collection}_id`;
       const newValue = this.value.map(junctionRow => {
         const file = junctionRow[this.junctionFieldName];
+        let output = junctionRow;
 
         if (file[this.relatedPrimaryKeyField.field] === id) {
-          return {
+          output = {
             ...junctionRow,
             $delete: true
           };
         }
 
-        return junctionRow;
+        // Leave only the id key for the collection holding files as a field.
+        // Storing other data will cause patch issues.
+        if (output[collectionIdKey]) {
+          output = {
+            ...output,
+            [collectionIdKey]: {
+              id: output[collectionIdKey].id
+            }
+          };
+        }
+
+        return output;
       });
 
       this.$emit("input", newValue);
