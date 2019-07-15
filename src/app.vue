@@ -171,6 +171,9 @@ body.info-wide-active {
 </style>
 
 <style lang="scss" scoped>
+.page-root {
+  background-color: var(--white);
+}
 .error {
   position: fixed;
   top: 0;

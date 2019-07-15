@@ -17,11 +17,11 @@
     ></div>
     <div v-if="options.tabbed" class="toolbar">
       <span :class="{ active: !preview }" @click="preview = false">
-        <v-icon name="code" size="22" />
+        <v-icon name="code" size="24" />
         {{ $t("interfaces-markdown-edit") }}
       </span>
       <span :class="{ active: preview }" @click="preview = true">
-        <v-icon name="visibility" size="22" />
+        <v-icon name="visibility" size="24" />
         {{ $t("interfaces-markdown-preview") }}
       </span>
     </div>
@@ -29,8 +29,6 @@
 </template>
 
 <script>
-// v-show="editor"
-// v-show="!editor"
 import marked from "marked";
 import mixin from "@directus/extension-toolkit/mixins/interface";
 
@@ -44,7 +42,9 @@ export default {
   computed: {
     compiledMarkdown() {
       if (this.value) {
-        return marked(this.value);
+        return marked(this.value, {
+          sanitize: true
+        });
       }
       return this.value;
     }

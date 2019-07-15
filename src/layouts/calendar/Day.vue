@@ -49,7 +49,6 @@ export default {
       if (!this.events) return;
 
       var events = this.events;
-
       var height = (this.$parent.innerHeight - 120) / 6;
       height -= 32;
       if (this.isWeek) {

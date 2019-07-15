@@ -16,6 +16,7 @@
         v-if="src || icon || $slots.icon"
         :style="{ backgroundColor: `var(--${color})` }"
         class="header"
+        :class="{ 'big-image': bigImage && src && !error }"
       >
         <button v-if="selectable" type="button" class="select" @click.stop="$emit('select')">
           <v-icon :name="selectionIcon" />
@@ -131,6 +132,10 @@ export default {
     disabled: {
       type: Boolean,
       default: false
+    },
+    bigImage: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -194,7 +199,7 @@ export default {
 
   &:not(.disabled):hover,
   &:not(.disabled).selected {
-    .header {
+    .header:not(.big-image) {
       background-color: var(--dark-gray) !important;
     }
   }
@@ -210,6 +215,10 @@ export default {
     align-items: center;
     justify-content: center;
     position: relative;
+
+    &.big-image {
+      height: 400px;
+    }
 
     &.small {
       height: 40px;
@@ -244,6 +253,11 @@ export default {
       width: 100%;
       height: 100%;
       object-fit: contain;
+    }
+
+    &.big-image img {
+      width: 100%;
+      height: 100%;
     }
 
     .icon {

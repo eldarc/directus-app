@@ -219,6 +219,7 @@ export default {
             status_mapping: {
               published: {
                 name: "Published",
+                value: "published",
                 text_color: "white",
                 background_color: "accent",
                 browse_subdued: false,
@@ -228,6 +229,7 @@ export default {
               },
               draft: {
                 name: "Draft",
+                value: "draft",
                 text_color: "white",
                 background_color: "blue-grey-100",
                 browse_subdued: true,
@@ -237,6 +239,7 @@ export default {
               },
               deleted: {
                 name: "Deleted",
+                value: "deleted",
                 text_color: "white",
                 background_color: "red",
                 browse_subdued: true,
@@ -267,6 +270,7 @@ export default {
             status_mapping: {
               published: {
                 name: "Published",
+                value: "published",
                 text_color: "white",
                 background_color: "accent",
                 browse_subdued: false,
@@ -276,6 +280,7 @@ export default {
               },
               draft: {
                 name: "Draft",
+                value: "draft",
                 text_color: "white",
                 background_color: "blue-grey-100",
                 browse_subdued: true,
@@ -285,6 +290,7 @@ export default {
               },
               deleted: {
                 name: "Deleted",
+                value: "deleted",
                 text_color: "white",
                 background_color: "red",
                 browse_subdued: true,

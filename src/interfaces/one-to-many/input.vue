@@ -5,7 +5,7 @@
     </v-notice>
 
     <template v-else>
-      <div v-if="itemsRaw.length" class="table">
+      <div v-if="itemsRaw && itemsRaw.length" class="table">
         <div class="header">
           <div class="row">
             <button v-if="sortable" class="sort-column" @click="toggleManualSort">
@@ -122,7 +122,7 @@
           <v-form
             :fields="relatedCollectionFields"
             :collection="relatedCollection"
-            :values="editExisting"
+            :values="existingWithEdits"
             @stage-value="stageValue"
           ></v-form>
         </div>
@@ -145,7 +145,7 @@
           <v-form
             new-item
             :fields="relatedCollectionFields"
-            :collection="collection"
+            :collection="relatedCollection"
             :values="relatedDefaultsWithEdits"
             @stage-value="stageValue"
           ></v-form>
@@ -299,10 +299,11 @@ export default {
       if (this.relationSetup === false) return null;
       if (!this.relatedDefaultValues) return null;
 
-      return {
-        ...this.relatedDefaultValues,
-        ...this.edits
-      };
+      return _.merge({}, this.relatedDefaultValues, this.edits);
+    },
+
+    existingWithEdits() {
+      return _.merge({}, this.editExisting, this.edits);
     },
 
     // The current value in just primary keys. Can be passed to the item select modal

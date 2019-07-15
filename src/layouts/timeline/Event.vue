@@ -55,13 +55,21 @@ export default {
 <style lang="scss" scoped>
 .event {
   position: relative;
-  margin-bottom: 16px;
+
+  &:first-child {
+    .container {
+      border-top: none;
+    }
+    .line .point {
+      top: 6px;
+    }
+  }
 
   .line {
     position: absolute;
-    top: 10px;
-    left: 25px;
-    height: 150%;
+    top: 15px;
+    left: 24px;
+    height: 102%;
     width: 2px;
     transform: translate(-50%, 0);
 
@@ -77,40 +85,41 @@ export default {
       transform: translate(-50%, -50%);
       border: 3px solid white;
       z-index: 10;
-      top: 7px;
+      top: 8px;
       position: relative;
     }
   }
 
   .container {
     cursor: pointer;
-    margin-left: 50px;
-    padding: 8px;
+    margin: 0 32px 0 40px;
+    padding: 12px;
     border-radius: var(--border-radius);
+    border-top: 2px solid var(--off-white);
 
     &:hover {
       background-color: var(--highlight);
     }
 
     .title {
-      margin-bottom: 5px;
+      color: var(--darker-gray);
+      margin-bottom: 4px;
       font-weight: 500;
-      font-size: 15px;
+      // font-size: 15px;
+      text-transform: capitalize; // For activity
     }
 
     .content {
-      padding: 4px 0px;
       display: flex;
       align-items: center;
 
       .display {
-        margin-right: 5px;
+        margin-right: 4px;
         font-weight: 500;
         color: var(--gray);
       }
 
       .time {
-        margin-top: 3px;
         color: var(--light-gray);
       }
     }

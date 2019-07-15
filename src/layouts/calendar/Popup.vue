@@ -9,7 +9,7 @@
         </div>
         <div id="sidebar" @wheel="scroll">
           <transition :name="moveSidebar">
-            <div id="dates-container" :key="days">
+            <div id="dates-container">
               <div
                 v-for="day in days"
                 :key="day.date.getDate()"
@@ -58,11 +58,12 @@
 <script>
 export default {
   components: {},
-  props: ["open", "date"],
+  props: ["open", "parentdate", "parentevents"],
   data() {
     return {
       // The differend animations for the sidebar.
-      moveSidebar: "move-0"
+      moveSidebar: "move-0",
+      date: '',
     };
   },
   computed: {
@@ -94,6 +95,7 @@ export default {
     }
   },
   created() {
+    this.date = this.parentdate
     this.scroll = _.throttle(this.scroll, 150);
   },
   methods: {
@@ -105,7 +107,7 @@ export default {
     },
 
     goToItem(id) {
-      this.$router.push(`/collections/${this.$parent.collection}/${id}`)
+      this.$router.push(`/collections/${this.$parent.collection}/${id}`);
     },
 
     changeDay(distance) {
@@ -131,12 +133,12 @@ export default {
 
       if (!dateId && !datetimeId) return;
 
-      for (var i = 0; i < this.$parent.items.length; i++) {
-        var item = this.$parent.items[i];
+      for (var i = 0; i < this.parentevents.length; i++) {
+        var item = this.parentevents[i];
         var eventDate = "";
 
         // datetime first
-        if(datetimeId !== '__none__') {
+        if (datetimeId !== "__none__") {
           eventDate = new Date(item[datetimeId]);
         } else {
           eventDate = new Date(item[dateId] + "T00:00:00");

@@ -404,6 +404,7 @@ export default {
     "There are different types of relational data, this interface uses one called {relation}.",
   relational: "Relational",
   relationship: "Relationship",
+  relationship_not_setup: "The relationship hasn't been configured correctly.",
   remove: "Remove",
   remove_related: "Remove Related Item",
   report_issue: "Report Issue",

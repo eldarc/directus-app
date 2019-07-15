@@ -19,6 +19,8 @@ export default {
   },
   methods: {
     tooLight(color) {
+      if (!color) return null;
+
       return color.includes("white") ||
         color.includes("100") ||
         (color.includes("50") && !color.includes("500"))

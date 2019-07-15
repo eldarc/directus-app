@@ -60,7 +60,7 @@
         ></Calendar>
       </transition>
     </div>
-    <Popup :open="showPopup" :date="popupDate" @close="showPopup = false"></Popup>
+    <Popup :open="showPopup" :parentdate="popupDate" @close="showPopup = false" :parentevents="events"></Popup>
   </div>
 </template>
 
@@ -71,249 +71,273 @@ import Popup from "./Popup.vue";
 
 export default {
   components: {
-    Calendar,
-    Popup
-  },
-  mixins: [mixin],
-  props: ["items"],
-  data() {
-    return {
-      //the distance (in months) of the current month
-      monthDistance: 0,
+      Calendar,
+      Popup
+    },
+    mixins: [mixin],
+    props: ["items"],
+    data() {
+      return {
+        //the distance (in months) of the current month
+        monthDistance: 0,
 
-      //animates the calendar swipe animation in the right direction
-      swipeTo: "left",
+        //animates the calendar swipe animation in the right direction
+        swipeTo: "left",
 
-      showPopup: false,
+        showPopup: false,
 
-      popupDate: new Date(),
+        popupDate: new Date(),
 
-      showMonthSelect: false,
+        events: [],
 
-      monthNames: [
-        "january",
-        "february",
-        "march",
-        "april",
-        "may",
-        "june",
-        "july",
-        "august",
-        "september",
-        "october",
-        "november",
-        "december"
-      ],
-      weekNames: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-    };
-  },
-  watch: {
-    date(newValue) {
-      this.getData(newValue)
-    }
-  },
-  computed: {
-    // Get the date of the view based on the delta of the months that the user
-    // has scrolled
-    date() {
-      var date = new Date();
-      date = new Date(date.getFullYear(), date.getMonth() + this.monthDistance, 1);
-      console.log(date)
-      return date;
-    }
-  },
-  created() {
-    this.getData(this.date)
-    this.scroll = _.throttle(this.scroll, 200);
-    document.addEventListener("click", this.documentClick);
-    document.addEventListener("keypress", this.keyPress);
-  },
-  destroyed() {
-    document.removeEventListener("click", this.documentClick);
-    document.removeEventListener("keypress", this.keyPress);
-  },
-  methods: {
-    getData(date) {
-      this.$store.dispatch("loadingStart", {
-        id: 'fetch_cal_items'
-      });
-      var dateId = this.viewOptions.date;
-      var datetimeId = this.viewOptions.datetime;
-      var columnName = ""
-      if(datetimeId !== '__none__') {
-        columnName = datetimeId
-      } else {
-        columnName = dateId
+        showMonthSelect: false,
+
+        monthNames: [
+          "january",
+          "february",
+          "march",
+          "april",
+          "may",
+          "june",
+          "july",
+          "august",
+          "september",
+          "october",
+          "november",
+          "december"
+        ],
+        weekNames: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+      };
+    },
+    computed: {
+      // Get the date of the view based on the delta of the months that the user
+      // has scrolled
+      date() {
+        var date = new Date();
+        date = new Date(date.getFullYear(), date.getMonth() + this.monthDistance, 1);
+        return date;
       }
-      
-      var endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-      var from = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()
-      var to = endOfMonth.getFullYear() + "-" + (endOfMonth.getMonth() + 1) + "-" + endOfMonth.getDate() + " " + endOfMonth.getHours() + ":" + endOfMonth.getMinutes() + ":" + endOfMonth.getSeconds() 
-      let filter = {
-          [columnName]: {
-            between: from + ',' + to
-          }
+    },
+    watch: {
+      date(newValue) {
+        this.getData(newValue);
+      }
+    },
+    created() {
+      this.getData(this.date);
+      this.scroll = _.throttle(this.scroll, 200);
+      document.addEventListener("click", this.documentClick);
+      document.addEventListener("keypress", this.keyPress);
+    },
+    destroyed() {
+      document.removeEventListener("click", this.documentClick);
+      document.removeEventListener("keypress", this.keyPress);
+    },
+    methods: {
+      getData(date) {
+        this.$store.dispatch("loadingStart", {
+          id: "fetch_cal_items"
+        });
+        var dateId = this.viewOptions.date;
+        var datetimeId = this.viewOptions.datetime;
+        var columnName = "";
+        if (datetimeId !== "__none__") {
+          columnName = datetimeId;
+        } else {
+          columnName = dateId;
         }
-      this.$api.getItems(this.$parent.collection, {
-          fields: '*.*.*',
-          filter: filter
-        }).then(res => {
-          res.data.forEach(item=>{
-            item.to = 'test'
+
+        var endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        var from =
+          date.getFullYear() +
+          "-" +
+          (date.getMonth() + 1) +
+          "-" +
+          date.getDate() +
+          " " +
+          date.getHours() +
+          ":" +
+          date.getMinutes() +
+          ":" +
+          date.getSeconds();
+        var to =
+          endOfMonth.getFullYear() +
+          "-" +
+          (endOfMonth.getMonth() + 1) +
+          "-" +
+          endOfMonth.getDate() +
+          " " +
+          endOfMonth.getHours() +
+          ":" +
+          endOfMonth.getMinutes() +
+          ":" +
+          endOfMonth.getSeconds();
+        let filter = {
+          [columnName]: {
+            between: from + "," + to
+          }
+        };
+        this.$api
+          .getItems(this.$parent.collection, {
+            fields: "*.*.*",
+            filter: filter
           })
-          this.$parent.items = res.data
-          this.$store.dispatch("loadingFinished", 'fetch_cal_items');
-        }).catch( e => {
-          console.log(e)
-          this.$store.dispatch("loadingFinished", 'fetch_cal_items');
-        })
-    },
-    increaseYear() {
-      this.swipeTo = "right";
-      this.monthDistance += 12;
-    },
+          .then(res => {
+            res.data.forEach(item => {
+              item.to = "test";
+            });
+            this.events = res.data;
+            this.$store.dispatch("loadingFinished", "fetch_cal_items");
+          })
+          .catch(e => {
+            console.log(e);
+            this.$store.dispatch("loadingFinished", "fetch_cal_items");
+          });
+      },
+      increaseYear() {
+        this.swipeTo = "right";
+        this.monthDistance += 12;
+      },
 
-    decreaseYear() {
-      this.swipeTo = "left";
-      this.monthDistance -= 12;
-    },
+      decreaseYear() {
+        this.swipeTo = "left";
+        this.monthDistance -= 12;
+      },
 
-    increaseMonth() {
-      this.swipeTo = "right";
-      this.monthDistance++;
-    },
+      increaseMonth() {
+        this.swipeTo = "right";
+        this.monthDistance++;
+      },
 
-    decreaseMonth() {
-      this.swipeTo = "left";
-      this.monthDistance--;
-    },
+      decreaseMonth() {
+        this.swipeTo = "left";
+        this.monthDistance--;
+      },
 
-    resetMonth() {
-      this.swipeTo = this.monthDistance > 0 ? "left" : "right";
-      this.monthDistance = 0;
-    },
+      resetMonth() {
+        this.swipeTo = this.monthDistance > 0 ? "left" : "right";
+        this.monthDistance = 0;
+      },
 
-    setMonth(index) {
-      this.swipeTo = this.monthDistance - index > 0 ? "left" : "right";
-      this.monthDistance = index;
-    },
+      setMonth(index) {
+        this.swipeTo = this.monthDistance - index > 0 ? "left" : "right";
+        this.monthDistance = index;
+      },
 
-    openPopup(date) {
-      console.log(date)
+      openPopup(date) {
+        this.showPopup = true;
+        this.popupDate = date;
+      },
 
-      this.showPopup = true;
-      this.popupDate = date;
-    },
+      eventsAtDay(date) {
+        var events = [];
+        var dateId = this.viewOptions.date;
+        var datetimeId = this.viewOptions.datetime;
+        var titleId = this.viewOptions.title;
+        var timeId = this.viewOptions.time;
+        var colorId = this.viewOptions.color;
 
-    eventsAtDay(date) {
-      var events = [];
-      var dateId = this.viewOptions.date;
-      var datetimeId = this.viewOptions.datetime;
-      var titleId = this.viewOptions.title;
-      var timeId = this.viewOptions.time;
-      var colorId = this.viewOptions.color;
+        if (!(!dateId || !datetimeId) || !titleId) return;
 
-      if (!dateId || !titleId) return;
-
-      for (var i = 0; i < this.$parent.items.length; i++) {
-        var item = this.$parent.items[i];
-        
-        var eventDate = "", 
+        for (var i = 0; i < this.events.length; i++) {
+          var item = this.events[i];
+          var eventDate = "",
             time = "";
 
-        // datetime first
-        if(datetimeId !== '__none__') {
-          eventDate = new Date(item[datetimeId]);
-          // allow to overridetime of datetime if time field is set
-          if(timeId === '__none__') time = item[datetimeId].slice(-8)
-          else time = item[timeId] && timeId != 0 ? item[timeId] : "";
-        } else {
-          eventDate = new Date(item[dateId] + "T00:00:00");
-          time = item[timeId] && timeId != 0 ? item[timeId] : "";
+          // datetime first
+          if (datetimeId !== "__none__") {
+            eventDate = new Date(item[datetimeId]);
+            // allow to overridetime of datetime if time field is set
+            if (timeId === "__none__") time = item[datetimeId].slice(-8);
+            else time = item[timeId] && timeId != 0 ? item[timeId] : "";
+          } else {
+            eventDate = new Date(item[dateId] + "T00:00:00");
+            time = item[timeId] && timeId != 0 ? item[timeId] : "";
+          }
+
+          var color = item[colorId];
+
+          if (!eventDate) continue;
+
+          if (!color) color = "accent";
+          color = `background-color: var(--${color})`;
+
+          if (this.isSameDay(date, eventDate)) {
+            var event = {
+              id: item.id,
+              title: item[titleId],
+              to: item.__link__,
+              time,
+              color
+            };
+
+            events.push(event);
+          }
         }
-        
-        var color = item[colorId];
 
-        if (!eventDate) continue;
-
-        if (!color) color = "accent";
-        color = `background-color: var(--${color})`;
-
-        if (this.isSameDay(date, eventDate)) {
-          var event = {
-            id: item.id,
-            title: item[titleId],
-            to: item.__link__,
-            time,
-            color
-          };
-          events.push(event);
+        if (timeId != 0) {
+          events.sort(this.compareTime);
         }
-      }
+        return events;
+      },
 
-      if (timeId != 0) {
-        events.sort(this.compareTime);
-      }
-      return events;
-    },
+      compareTime(time1, time2) {
+        var timeId = this.viewOptions.time;
 
-    compareTime(time1, time2) {
-      var timeId = this.viewOptions.time;
+        if (time1[timeId] == "" && time2[timeId] == "") return 0;
+        if (time1[timeId] != "" && time2[timeId] == "") return -1;
+        if (time1[timeId] == "" && time2[timeId] != "") return 1;
 
-      if (time1[timeId] == "" && time2[timeId] == "") return 0;
-      if (time1[timeId] != "" && time2[timeId] == "") return -1;
-      if (time1[timeId] == "" && time2[timeId] != "") return 1;
+        var timeA = new Date("1970-01-01T" + time1[timeId]);
+        var timeB = new Date("1970-01-01T" + time2[timeId]);
 
-      var timeA = new Date("1970-01-01T" + time1[timeId]);
-      var timeB = new Date("1970-01-01T" + time2[timeId]);
+        if (timeA > timeB) return 1;
+        if (timeA < timeB) return -1;
+        return 0;
+      },
 
-      if (timeA > timeB) return 1;
-      if (timeA < timeB) return -1;
-      return 0;
-    },
+      isSameDay(date1, date2) {
+        return (
+          date1.getFullYear() == date2.getFullYear() &&
+          date1.getMonth() == date2.getMonth() &&
+          date1.getDate() == date2.getDate()
+        );
+      },
 
-    isSameDay(date1, date2) {
-      return (
-        date1.getFullYear() == date2.getFullYear() &&
-        date1.getMonth() == date2.getMonth() &&
-        date1.getDate() == date2.getDate()
-      );
-    },
+      //opens or closes the date select dropdown
+      documentClick(event) {
+        var dropdown = this.$refs.dropdown;
+        var target = event.target;
+        this.showMonthSelect =
+          (target === dropdown && !this.showMonthSelect) ||
+          (dropdown.contains(target) && target !== dropdown);
+      },
 
-    //opens or closes the date select dropdown
-    documentClick(event) {
-      var dropdown = this.$refs.dropdown;
-      var target = event.target;
-      this.showMonthSelect =
-        (target === dropdown && !this.showMonthSelect) ||
-        (dropdown.contains(target) && target !== dropdown);
-    },
+      keyPress(event) {
+        switch (event.key) {
+          case "Escape":
+            this.showPopup = false;
+            break;
+          case "ArrowRight":
+            this.increaseMonth();
+            break;
+          case "ArrowLeft":
+            this.decreaseMonth();
+            break;
+          default:
+            break;
+        }
+      },
 
-    keyPress(event) {
-      switch (event.key) {
-        case "Escape":
-          this.showPopup = false;
-          break;
-        case "ArrowRight":
+      scroll(event) {
+        if (event.deltaY > 0) {
           this.increaseMonth();
-          break;
-        case "ArrowLeft":
+        } else {
           this.decreaseMonth();
-          break;
-        default:
-          break;
-      }
-    },
-
-    scroll(event) {
-      if (event.deltaY > 0) {
-        this.increaseMonth();
-      } else {
-        this.decreaseMonth();
+        }
       }
     }
-  }
-};
+  };
 </script>
 
 <style type="scss" scoped>

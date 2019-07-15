@@ -657,7 +657,7 @@ export default {
       };
     },
     collections() {
-      return Object.assign({}, this.$store.state.collections);
+      return _.cloneDeep(this.$store.state.collections);
     },
     collectionsGrouped() {
       const collectionNames = Object.keys(this.collections);
@@ -666,7 +666,7 @@ export default {
       return { system, user };
     },
     interfaces() {
-      return Object.assign({}, this.$store.state.extensions.interfaces);
+      return _.cloneDeep(this.$store.state.extensions.interfaces);
     },
     interfacesPopular() {
       const groups = [
@@ -697,7 +697,7 @@ export default {
         .map(interfaceName => ({ ...this.interfaces[interfaceName] }));
     },
     databaseVendor() {
-      return this.$store.state.serverInfo.databaseVendor;
+      return _.cloneDeep(this.$store.state.serverInfo.databaseVendor);
     },
     primaryKeyDisabled() {
       if (!this.primaryKeyField) return false;
@@ -1156,7 +1156,7 @@ export default {
       // that way). +1 for future optimizations!
       const fieldName = this.fieldInfo.field;
       const collectionName = this.collectionInfo.collection;
-      const storeFieldCopy = _.clone(
+      const storeFieldCopy = _.cloneDeep(
         this.$store.state.collections[collectionName].fields[fieldName]
       );
 
@@ -1178,7 +1178,7 @@ export default {
       const field = this.field;
 
       if (this.relation === "m2o") {
-        const existingRelation = this.$store.getters.m2o(collection, field);
+        const existingRelation = _.cloneDeep(this.$store.getters.m2o(collection, field));
 
         if (existingRelation) {
           _.forEach(existingRelation, (val, key) => {
@@ -1198,15 +1198,15 @@ export default {
           this.relationInfo.collection_many = this.collectionInfo.collection;
           this.relationInfo.field_many = this.field;
           this.relationInfo.collection_one = Object.values(
-            this.$store.state.collections
+            _.cloneDeep(this.$store.state.collections)
           )[0].collection;
           this.relationInfo.field_one = _.find(
-            Object.values(this.$store.state.collections)[0].fields,
+            Object.values(_.cloneDeep(this.$store.state.collections))[0].fields,
             { primary_key: true }
           ).field;
         }
       } else if (this.relation === "o2m") {
-        const existingRelation = this.$store.getters.o2m(collection, field);
+        const existingRelation = _.cloneDeep(this.$store.getters.o2m(collection, field));
 
         if (existingRelation) {
           _.forEach(existingRelation, (val, key) => {
@@ -1227,18 +1227,18 @@ export default {
           this.relationInfo.field_one = this.field;
 
           this.relationInfo.collection_many = Object.values(
-            this.$store.state.collections
+            _.cloneDeep(this.$store.state.collections)
           )[0].collection;
 
           this.relationInfo.field_many = _.find(
-            Object.values(this.$store.state.collections)[0].fields,
+            Object.values(_.cloneDeep(this.$store.state.collections))[0].fields,
             { primary_key: true }
           ).field;
 
           this.getM2OID();
         }
       } else if (this.relation === "m2m") {
-        const existingRelation = this.$store.getters.o2m(collection, field);
+        const existingRelation = _.cloneDeep(this.$store.getters.o2m(collection, field));
 
         if (field && existingRelation) {
           this.relationInfoM2M[0].id = existingRelation.id;
@@ -1309,7 +1309,7 @@ export default {
       const collection = this.relationInfo.collection_many;
       const field = this.relationInfo.field_many;
 
-      const m2o = this.$store.getters.m2o(collection, field);
+      const m2o = _.cloneDeep(this.$store.getters.m2o(collection, field));
 
       if (m2o) {
         this.relationInfo.id = m2o.id;

@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :data-collection="collection" :data-field="field.field">
     <div v-if="showLabel" class="name">
       <v-icon
         v-if="field.note"

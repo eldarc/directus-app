@@ -76,7 +76,8 @@ export default {
   border-radius: var(--border-radius);
   background-color: white;
   padding: 10px;
-  background-color: var(--lightest-gray);
+  background-color: var(--off-white);
+  border: var(--input-border-width) solid var(--lightest-gray);
 
   .v-input {
     position: sticky;
@@ -101,7 +102,7 @@ export default {
   button {
     padding: 0.5em;
     transition: color var(--fast) var(--transition);
-    color: var(--lighter-gray);
+    color: var(--light-gray);
     max-width: 37px;
 
     &.active {

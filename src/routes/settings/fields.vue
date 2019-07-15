@@ -361,112 +361,90 @@ export default {
           });
         });
     },
-    setFieldSettings({ fieldInfo, relation }) {
+
+    async setFieldSettings({ fieldInfo, relation }) {
       this.fieldSaving = true;
 
       const existingField = this.$store.state.collections[this.collection].fields.hasOwnProperty(
         fieldInfo.field
       );
 
-      const requests = [];
-
       const id = this.$helpers.shortid.generate();
       this.$store.dispatch("loadingStart", { id });
 
-      if (existingField) {
-        requests.push(this.$api.updateField(this.collection, fieldInfo.field, fieldInfo));
-      } else {
-        delete fieldInfo.id;
-        fieldInfo.collection = this.collection;
-        requests.push(this.$api.createField(this.collection, fieldInfo));
-      }
+      try {
+        if (existingField) {
+          const { data: savedFieldInfo } = await this.$api.updateField(
+            this.collection,
+            fieldInfo.field,
+            fieldInfo
+          );
 
-      if (relation) {
-        const saveRelation = relation => {
-          const existingRelation = relation && relation.id != null;
-          if (existingRelation) {
-            requests.push(this.$api.updateRelation(relation.id, relation));
-          } else {
-            delete relation.id;
-            requests.push(this.$api.createRelation(relation));
-          }
-        };
-
-        if (Array.isArray(relation)) {
-          relation.forEach(saveRelation);
-        } else {
-          saveRelation(relation);
-        }
-      }
-
-      return Promise.all(requests)
-        .then(([fieldRes, relationRes]) => ({
-          savedFieldInfo: fieldRes.data,
-          savedRelationInfo: relationRes && relationRes.data
-        }))
-        .then(({ savedFieldInfo, savedRelationInfo }) => {
-          this.$store.dispatch("loadingFinished", id);
-
-          if (existingField) {
-            this.fields = this.fields.map(field => {
-              if (field.id === savedFieldInfo.id) return savedFieldInfo;
-              return field;
-            });
-
-            this.$notify({
-              title: this.$t("field_updated", {
-                field: this.$helpers.formatTitle(fieldInfo.field)
-              }),
-              color: "green",
-              iconMain: "check"
-            });
-
-            this.$store.dispatch("getCollections");
-          } else {
-            this.fields = [...this.fields, savedFieldInfo];
-
-            this.$notify({
-              title: this.$t("field_created", {
-                field: this.$helpers.formatTitle(fieldInfo.field)
-              }),
-              color: "green",
-              iconMain: "check"
-            });
-
-            this.$store.dispatch("getCollections");
-          }
-
-          if (relation) {
-            const saveRelation = relation => {
-              const existingRelation = relation && relation.id != null;
-              if (existingRelation) {
-                this.$store.dispatch("updateRelation", savedRelationInfo);
-              } else {
-                this.$store.dispatch("addRelation", savedRelationInfo);
-              }
-            };
-
-            if (Array.isArray(relation)) {
-              relation.forEach(saveRelation);
-            } else {
-              saveRelation(relation);
-            }
-          }
-        })
-        .then(() => {
-          this.editingField = false;
-          this.fieldBeingEdited = null;
-        })
-        .catch(error => {
-          this.$store.dispatch("loadingFinished", id);
-          this.$events.emit("error", {
-            notify: this.$t("something_went_wrong_body"),
-            error
+          this.fields = this.fields.map(field => {
+            if (field.id === savedFieldInfo.id) return savedFieldInfo;
+            return field;
           });
-        })
-        .finally(() => {
-          this.fieldSaving = false;
+
+          this.$notify({
+            title: this.$t("field_updated", {
+              field: this.$helpers.formatTitle(fieldInfo.field)
+            }),
+            color: "green",
+            iconMain: "check"
+          });
+        } else {
+          const { data: savedFieldInfo } = await this.$api.createField(this.collection, fieldInfo);
+
+          this.fields = [...this.fields, savedFieldInfo];
+
+          this.$notify({
+            title: this.$t("field_created", {
+              field: this.$helpers.formatTitle(fieldInfo.field)
+            }),
+            color: "green",
+            iconMain: "check"
+          });
+        }
+
+        this.$store.dispatch("getCollections");
+
+        if (relation) {
+          const saveRelation = async relation => {
+            const existingRelation = relation && relation.id != null;
+
+            if (existingRelation) {
+              const { data: updatedRelation } = await this.$api.updateRelation(
+                relation.id,
+                relation
+              );
+              this.$store.dispatch("updateRelation", updatedRelation);
+            } else {
+              const { data: newRelation } = await this.$api.createRelation(relation);
+              this.$store.dispatch("addRelation", newRelation);
+            }
+          };
+
+          if (Array.isArray(relation)) {
+            for (let relationInfo of relation) {
+              saveRelation(relationInfo);
+            }
+          } else {
+            saveRelation(relation);
+          }
+        }
+
+        this.editingField = false;
+        this.fieldBeingEdited = null;
+        this.fieldSaving = false;
+        this.$store.dispatch("loadingFinished", id);
+      } catch (error) {
+        this.fieldSaving = false;
+        this.$store.dispatch("loadingFinished", id);
+        this.$events.emit("error", {
+          notify: this.$t("something_went_wrong_body"),
+          error
         });
+      }
     },
     fieldOptions(field) {
       return [
@@ -477,7 +455,7 @@ export default {
         },
         {
           text: this.$t("delete"),
-          icon: "close"
+          icon: "delete_outline"
         }
       ];
     },

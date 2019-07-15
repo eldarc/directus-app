@@ -45,6 +45,8 @@ export default {
       return _.pick(this.statusMapping, allowedStatuses);
     },
     blacklist() {
+      if (!this.permissions) return;
+
       if (typeof this.permissions.status_blacklist === "string")
         return this.permissions.status_blacklist.split(",");
 

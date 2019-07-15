@@ -3,7 +3,7 @@
     <v-card
       v-if="value"
       class="card"
-      :title="value.title"
+      :title="image.title"
       :subtitle="subtitle + subtitleExtra"
       :src="src"
       :icon="icon"
@@ -14,6 +14,7 @@
           icon: 'delete'
         }
       }"
+      big-image
       @remove="$emit('input', null)"
     ></v-card>
     <v-upload
@@ -83,7 +84,7 @@
           :view-options="viewOptions"
           @options="setViewOptions"
           @query="setViewQuery"
-          @select="$emit('input', $event[$event.length - 1])"
+          @select="saveSelection"
         ></v-items>
       </v-modal>
     </portal>
@@ -101,48 +102,48 @@ export default {
     return {
       newFile: false,
       existing: false,
-
       viewOptionsOverride: {},
       viewTypeOverride: null,
       viewQueryOverride: {},
-      filtersOverride: []
+      filtersOverride: [],
+      image: _.cloneDeep(this.value)
     };
   },
   computed: {
     subtitle() {
-      if (!this.value) return "";
+      if (!this.image) return "";
 
       return (
-        this.value.filename.split(".").pop() +
+        this.image.filename.split(".").pop() +
         " • " +
-        this.$d(new Date(this.value.uploaded_on), "short")
+        this.$d(new Date(this.image.uploaded_on), "short")
       );
     },
     subtitleExtra() {
       // Image ? -> display dimensions and formatted filesize
-      return this.value.type && this.value.type.startsWith("image")
+      return this.image.type && this.image.type.startsWith("image")
         ? " • " +
-            this.value.width +
+            this.image.width +
             " x " +
-            this.value.height +
+            this.image.height +
             " (" +
-            formatSize(this.value.filesize) +
+            formatSize(this.image.filesize) +
             ")"
         : null;
     },
     src() {
-      return this.value.type && this.value.type.startsWith("image")
-        ? this.value.data.full_url
+      return this.image.type && this.image.type.startsWith("image")
+        ? this.image.data.full_url
         : null;
     },
     icon() {
-      return this.value.type && !this.value.type.startsWith("image")
-        ? getIcon(this.value.type)
+      return this.image.type && !this.image.type.startsWith("image")
+        ? getIcon(this.image.type)
         : null;
     },
     href() {
-      return this.value.type && this.value.type === "application/pdf"
-        ? this.value.data.full_url
+      return this.image.type && this.image.type === "application/pdf"
+        ? this.image.data.full_url
         : null;
     },
     viewOptions() {
@@ -179,7 +180,7 @@ export default {
         {
           field: "type",
           operator: "in",
-          value: this.options.accept.trim().split(/,\s*/)
+          value: (this.options.accept || "").trim().split(/,\s*/)
         }
       ];
     }
@@ -189,7 +190,10 @@ export default {
   },
   methods: {
     saveUpload(fileInfo) {
-      this.$emit("input", fileInfo.data);
+      this.image = fileInfo.data;
+      // We know that the primary key of directus_files is called `id`
+      this.$emit("input", { id: fileInfo.data.id });
+
       this.newFile = false;
     },
     setViewOptions(updates) {
@@ -208,6 +212,11 @@ export default {
       this.setViewQuery({
         q: value
       });
+    },
+    saveSelection(value) {
+      const file = value[value.length - 1];
+      this.image = file;
+      this.$emit("input", { id: file.id });
     }
   }
 };

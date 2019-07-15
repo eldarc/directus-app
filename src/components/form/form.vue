@@ -81,7 +81,7 @@ export default {
     filteredFields() {
       const readFieldBlacklist = this.permissions.read_field_blacklist || [];
       const writeFieldBlacklist = this.permissions.write_field_blacklist || [];
-      let fields = Object.values(this.fields);
+      let fields = Object.values(_.cloneDeep(this.fields));
 
       // Filter out all the fields that are listed in the field read blacklist
       fields = fields.filter(fieldInfo => {
@@ -186,7 +186,8 @@ export default {
 }
 
 .form > .half,
-.form > .half-left {
+.form > .half-left,
+.form > .half-space {
   grid-column: start / half;
 }
 

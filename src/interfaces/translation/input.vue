@@ -30,7 +30,8 @@
       class="form"
       :fields="relatedFields"
       :values="langValue"
-      :collection="relation.collection_many"
+      :collection="relation.collection_many.collection"
+      :new-item="isNew"
       @stage-value="stageValue"
     />
   </div>
@@ -71,6 +72,9 @@ export default {
       if (!this.value) return {};
 
       return this.valuesByLang[this.activeLanguage] || {};
+    },
+    isNew() {
+      return this.valuesByLang[this.activeLanguage] !== undefined;
     },
     valuesByLang() {
       if (!this.value) return {};
@@ -192,5 +196,11 @@ hr {
   margin: 20px 0;
   border: 0;
   border-bottom: 1px dashed var(--lighter-gray);
+}
+
+.form {
+  grid-template-columns:
+    [start] minmax(0, var(--column-width)) [half] minmax(0, var(--column-width))
+    [full];
 }
 </style>

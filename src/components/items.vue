@@ -386,8 +386,8 @@ export default {
     formatParams() {
       let params = {
         meta: "total_count,result_count",
-        limit: 50,
-        offset: 50 * this.items.page
+        limit: 100,
+        offset: 100 * this.items.page
       };
 
       Object.assign(params, this.viewQuery);
